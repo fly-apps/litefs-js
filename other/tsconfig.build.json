@@ -1,0 +1,17 @@
+{
+	"include": ["../src/**/*.ts"],
+	"compilerOptions": {
+		"isolatedModules": true,
+		"esModuleInterop": true,
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"target": "ES2022",
+		"strict": true,
+		"allowJs": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"outDir": "../dist",
+		"declaration": true
+	}
+}
