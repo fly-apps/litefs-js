@@ -3,8 +3,9 @@
 
 <p>
 JavaScript utilities for working with
-[LiteFS](https://fly.io/docs/litefs/getting-started/) on
-[Fly.io](https://fly.io)</p>
+<a href="https://fly.io/docs/litefs/getting-started/">LiteFS</a>
+on <a href="https://fly.io">Fly.io</a>
+</p>
 </div>
 
 ---
