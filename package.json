@@ -1,7 +1,7 @@
 {
   "name": "litefs-js",
   "version": "1.0.0",
-  "description": "",
+  "description": "JavaScript utilities for working with LiteFS on Fly.io",
   "types": "dist/index.d.ts",
   "main": "index.js",
   "scripts": {
