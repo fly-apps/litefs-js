@@ -26,9 +26,12 @@ make your app really fast, but there are two issues:
 2. There's an edge case where the user could write to the primary instance and
    then read from a replica instance before replication is finished.
 
-Here's how we visualize that:
+The first problem is as simple as making sure you use a special `fly-replay`
+response so Fly can pass the request to the primary instance:
 
 ![a visualization of the user making a request which is sent to a read replica and replayed to the primary instance](https://user-images.githubusercontent.com/1500684/215623618-85620188-b7f7-458b-90cf-d1844b3d6d63.png)
+
+But the second problem is a little harder. Here's how we visualize that:
 
 ![continuing the previous visualization with the edge case that the read replica responds to a get request before the replication has finished](https://user-images.githubusercontent.com/1500684/215623612-68909248-67ae-483c-8e92-1e9f292ee3e9.png)
 
@@ -72,6 +75,10 @@ Integrating this with your existing server requires integration in two places:
 
 Low-level utilities are exposed, but higher level utilities are also available
 for `express` and `remix`.
+
+Additionally, any routes that trigger database mutations will need to ensure
+they are running on the primary instance, which is where `ensurePrimary` comes
+in handy.
 
 ### Express
 
