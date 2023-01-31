@@ -57,7 +57,7 @@ jobs:
         run: npm run test
 
   release:
-    needs: [main]
+    needs: [build, test]
     runs-on: ubuntu-latest
     # only run this step if:
     # 1. we're running on the primary repo (not a fork)
