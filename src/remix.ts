@@ -12,7 +12,7 @@ export { getTxSetCookieHeader } from '.'
  * If the current instance is the primary instance, then returns false.
  * Otherwise, this will throw a response object with a status code of 409 and
  * the fly-replay header set to the primary instance.
- * @returns {Promise<boolean>} whether the current instance is the primary instance
+ * @returns {Promise<true>} if the current instance is the primary instance
  * @throws {Response} if the current instance is not the primary instance
  * @example
  * import { ensurePrimary } from "litefs-js/remix";
@@ -22,12 +22,40 @@ export { getTxSetCookieHeader } from '.'
  */
 export async function ensurePrimary(): Promise<boolean> {
 	const { currentIsPrimary, primaryInstance } = await getInstanceInfo()
-	if (currentIsPrimary) return false
+	if (currentIsPrimary) return true
 
 	throw getReplayResponse(primaryInstance)
 }
 
-function getReplayResponse(instance: string) {
+/**
+ * This will throw a fly replay response if the current instance is not the
+ * given instance.
+ *
+ * @param instance the instance you want to ensure is currently running
+ * @returns {Promise<true>} if the current instance is the given instance
+ * @throws {Response} if the current instance is not the given instance
+ */
+export async function ensureInstance(instance: string): Promise<true> {
+	const { currentInstance } = await getInstanceInfo()
+	if (instance === currentInstance) return true
+
+	throw getReplayResponse(instance)
+}
+
+/**
+ * Creates a Response object that allows you to replay the request to a different
+ * instance by its hostname.
+ *
+ * @param instance the instance you want to replay to
+ * @returns {Response} the response object you should send for Fly to intercept
+ * and replay the request to the given instance.
+ * @example
+ * import { getReplayResponse } from "litefs-js/remix";
+ * // in server-side code ...
+ * throw getReplayResponse('some-instance-hostname');
+ * ...
+ */
+export function getReplayResponse(instance: string): Response {
 	return new Response(null, {
 		status: 409,
 		headers: {

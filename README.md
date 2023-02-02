@@ -64,6 +64,9 @@ environment variables on your server:
 - `DATABASE_FILENAME` - the filename of your sqlite database. This is used to
   determine the location of the `-pos` file which LiteFS uses to track the
   transaction number.
+- `INTERNAL_PORT` - the port set in the fly.toml (can be different from `PORT`
+  if you're using the litefs proxy). This is useful for the
+  `getInternalInstanceDomain` utility.
 
 ## Usage
 
@@ -185,6 +188,10 @@ more customization and are documented via jsdoc. Utilities you may find helpful:
 - `checkCookieForTransactionalConsistency` - the logic used to check the
   transaction number cookie for consistency and wait for replication if
   necessary.
+- `getAllInstances` - get all the instances of your app currently running
+- `getInternalInstanceDomain` - get the internal domain for the current instance
+  so you can communicate between instances of your app (ensure you've set the
+  `INTERNAL_PORT` environment variable to what appears in your `fly.toml`).
 
 ## How it works
 

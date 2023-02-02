@@ -1,6 +1,7 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import dns from 'dns'
 import cookie from 'cookie'
 import type { CookieSerializeOptions } from 'cookie'
 
@@ -60,6 +61,39 @@ export async function getInstanceInfo(
 			path.join(litefsDir, '.primary'),
 			'utf8',
 		)
+		primaryInstance = primaryInstance.trim()
+	} catch {
+		primaryInstance = currentInstance
+	}
+	return {
+		primaryInstance,
+		currentInstance,
+		currentIsPrimary: currentInstance === primaryInstance,
+	}
+}
+
+/**
+ * Just like getInstanceInfo except this runs synchronously.
+ *
+ * @param {LiteFSDir} [litefsDir=process.env.LITEFS_DIR] - the directory where
+ * the .primary file is stored. Defaults to process.env.LITEFS_DIR. This should
+ * be what you set your fuse.dir config to in the litefs.yml config.
+ *
+ * @returns {InstanceInfo} the primary instance hostname, the current
+ * instance hostname, and whether the current instance is the primary instance
+ */
+export function getInstanceInfoSync(
+	litefsDir: LiteFSDir = process.env.LITEFS_DIR,
+): InstanceInfo {
+	if (!litefsDir) {
+		throw new Error(
+			'litefs-js: LITEFS_DIR is not defined. You must either set the LITEFS_DIR environment variable or pass the litefsDir argument to getInstanceInfo',
+		)
+	}
+	const currentInstance = os.hostname()
+	let primaryInstance
+	try {
+		primaryInstance = fs.readFileSync(path.join(litefsDir, '.primary'), 'utf8')
 		primaryInstance = primaryInstance.trim()
 	} catch {
 		primaryInstance = currentInstance
@@ -281,4 +315,61 @@ export async function checkCookieForTransactionalConsistency(
 			instance: primaryInstance,
 		}
 	}
+}
+
+/**
+ * Returns the internal domain for the given instance.
+ * @example
+ * import { getInternalInstanceDomain } from "litefs-js/http";
+ * ...
+ * const internalDomain = getInternalInstanceDomain("primary")
+ * // internalDomain === "http://5ef6ddf5.vm.myapp.internal:8081"
+ * ...
+ */
+export function getInternalInstanceDomain(
+	instance: string,
+	port: string | void = process.env.INTERNAL_PORT ??
+		process.env.PORT ??
+		panic('INTERNAL_PORT or PORT must be set or a port must be supplied'),
+) {
+	// http and specify port for internal vm requests
+	return `http://${instance}.vm.${process.env.FLY_APP_NAME}.internal:${port}`
+}
+
+/**
+ * Gives an object of instance ids mapped to the region where they're hosted.
+ * @example
+ * import { getAllInstances } from "litefs-js/http";
+ * ...
+ * const instances = await getAllInstances()
+ * // instances === { "5ef6ddf5": "maa", "5ef6ddf6": "sjc", "5ef6ddf7": "ams" }
+ * ...
+ */
+export async function getAllInstances() {
+	if (!process.env.FLY_APP_NAME) {
+		return { [os.hostname()]: 'local' }
+	}
+
+	try {
+		const rawTxts = await dns.promises.resolveTxt(
+			`vms.${process.env.FLY_APP_NAME ?? 'local'}.internal`,
+		)
+		const instances = rawTxts
+			.flat()
+			.flatMap(r => r.split(','))
+			.map(vm => vm.split(' '))
+			.reduce<Record<string, string>>(
+				(all, [instanceId, region]) =>
+					instanceId && region ? { ...all, [instanceId]: region } : all,
+				{},
+			)
+		return instances
+	} catch (error: unknown) {
+		console.error('Error getting all instances', error)
+		return { [os.hostname()]: [process.env.FLY_REGION ?? 'local'] }
+	}
+}
+
+function panic(message: string) {
+	throw message
 }
