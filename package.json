@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "JavaScript utilities for working with LiteFS on Fly.io",
   "types": "dist/index.d.ts",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc --build ./other/tsconfig.build.json",
     "test": "c8 --all --src src --reporter html npm run test:base",
