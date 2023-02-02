@@ -47,6 +47,18 @@ Here's how we visualize that:
 
 ![a visualization that shows the primary server sending a transaction number to the client and then the subsequent get request is sent to the replica which waits for replication to finish before responding](https://user-images.githubusercontent.com/1500684/215623623-3815a1bf-2263-4d5f-9720-cd8dc23eb027.png)
 
+## The even better (experimental) `proxy` solution
+
+At the time of this writing, LiteFS just released experimental support for a
+proxy server that will handle much of this stuff for you. You simply configure
+the proxy server in your `litefs.yml` and then you don't need to bother with the
+tx number cookie or ensuring primary on non-get requests at all. The `litefs-js`
+module is still useful for one-off situations where you're making mutations in
+GET requests for example, or if you need to know more about the running
+instances of your application, but for most of the use cases, you can get away
+with using the proxy.
+[Learn more about using the proxy from this PR](https://github.com/superfly/litefs/pull/271).
+
 ## Installation
 
 This module is distributed via [npm][npm] which is bundled with [node][node] and
