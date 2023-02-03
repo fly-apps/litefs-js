@@ -17,7 +17,7 @@ test('ensurePrimary() does not throw a Response when on primary', async () => {
 test('ensurePrimary() throws a Response when on replica', async () => {
 	const primary = await setupReplica()
 	const response = await ensurePrimary().catch(r => r)
-	assert.equal(response.status, 409)
+	assert.equal(response.status, 302)
 	assert.equal(response.headers.get('fly-replay'), `instance=${primary}`)
 })
 
@@ -54,7 +54,7 @@ test('handleTransactionalConsistency() returns replay if the txnum is old', asyn
 		},
 	})
 	const response = await handleTransactionalConsistency(req).catch(r => r)
-	assert.equal(response.status, 409)
+	assert.equal(response.status, 302)
 	assert.equal(response.headers.get('fly-replay'), `instance=${primary}`)
 })
 
