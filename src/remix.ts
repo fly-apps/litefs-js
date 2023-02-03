@@ -46,6 +46,13 @@ export async function ensureInstance(instance: string): Promise<true> {
  * Creates a Response object that allows you to replay the request to a different
  * instance by its hostname.
  *
+ * NOTE: this uses a redirect request because otherwise, you have to manually
+ * forward the headers for document requests in each route that throws this
+ * replay response which is easy to forget and a bit of a pain. With a redirect,
+ * Remix will simply forward the response as you make it to the browser. And in
+ * our case, the response never makes it to the browser because Fly will
+ * intercept it due to the fly-replay header.
+ *
  * @param instance the instance you want to replay to
  * @returns {Response} the response object you should send for Fly to intercept
  * and replay the request to the given instance.
@@ -57,8 +64,9 @@ export async function ensureInstance(instance: string): Promise<true> {
  */
 export function getReplayResponse(instance: string): Response {
 	return new Response(null, {
-		status: 409,
+		status: 302,
 		headers: {
+			Location: '/',
 			'fly-replay': `instance=${instance}`,
 		},
 	})
