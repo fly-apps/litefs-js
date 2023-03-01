@@ -82,6 +82,73 @@ environment variables on your server:
 
 ## Usage
 
+The best way to use this is with the latest version of LiteFS which supports the
+`proxy` server:
+
+```yml
+# litefs.yml
+# ...
+proxy:
+  # matches the internal_port in fly.toml
+  addr: ':${INTERNAL_PORT}'
+  target: 'localhost:${PORT}'
+  db: '${DATABASE_FILENAME}'
+# ...
+```
+
+From there all you really need `litefs-js` for is when you run your database
+migrations. For example:
+
+```js
+// start.js
+const fs = require('fs')
+const { spawn } = require('child_process')
+const os = require('os')
+const path = require('path')
+const { getInstanceInfo } = require('litefs-js')
+
+async function go() {
+	const { currentInstance, currentIsPrimary, primaryInstance } =
+		await getInstanceInfo()
+
+	if (currentIsPrimary) {
+		console.log(
+			`Instance (${currentInstance}) in ${process.env.FLY_REGION} is primary. Deploying migrations.`,
+		)
+		await exec('npx prisma migrate deploy')
+	} else {
+		console.log(
+			`Instance (${currentInstance}) in ${process.env.FLY_REGION} is not primary (the primary instance is ${primaryInstance}). Skipping migrations.`,
+		)
+	}
+
+	console.log('Starting app...')
+	await exec('node ./build')
+}
+go()
+
+async function exec(command) {
+	const child = spawn(command, { shell: true, stdio: 'inherit' })
+	await new Promise((res, rej) => {
+		child.on('exit', code => {
+			if (code === 0) {
+				res()
+			} else {
+				rej()
+			}
+		})
+	})
+}
+```
+
+The only other thing you need to worry about is if you ever perform a mutation
+as a part of a GET request. The proxy will handle forwarding non-GET requests
+for you automatically, but if you need to write to a non-primary in a GET,
+you'll need to use some of the utilities to ensure the server replays the
+request to the primary.
+
+### Lower Level Usage
+
 Integrating this with your existing server requires integration in two places:
 
 1. Setting the transaction number cookie on the client after mutations have
