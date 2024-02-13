@@ -47,7 +47,7 @@ Here's how we visualize that:
 
 ![a visualization that shows the primary server sending a transaction number to the client and then the subsequent get request is sent to the replica which waits for replication to finish before responding](https://user-images.githubusercontent.com/1500684/215623623-3815a1bf-2263-4d5f-9720-cd8dc23eb027.png)
 
-## The even better (experimental) `proxy` solution
+## The even better `proxy` solution
 
 At the time of this writing, LiteFS just released experimental support for a
 proxy server that will handle much of this stuff for you. You simply configure
