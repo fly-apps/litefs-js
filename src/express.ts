@@ -1,13 +1,13 @@
 // this is utilities for node's express module
 import type { RequestHandler } from 'express'
-import { getInstanceInfo } from '.'
+import { getInstanceInfo } from './index.js'
 import {
 	ensurePrimary,
 	handleTransactionalConsistency,
 	setTxCookie,
-} from './http'
+} from './http.js'
 
-export * from './http'
+export * from './http.js'
 
 /**
  * This is an express middleware that will ensure that if the client has a

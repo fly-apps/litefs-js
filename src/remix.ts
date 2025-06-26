@@ -4,9 +4,9 @@ import {
 	getInstanceInfo,
 	getTxNumber,
 	getTxSetCookieHeader,
-} from '.'
+} from './index.js'
 
-export { getTxSetCookieHeader } from '.'
+export { getTxSetCookieHeader } from './index.js'
 
 /**
  * If the current instance is the primary instance, then returns false.
