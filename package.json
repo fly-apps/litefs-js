@@ -64,5 +64,23 @@
     "tabWidth": 2,
     "trailingComma": "all",
     "useTabs": true
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./remix": {
+      "import": "./dist/remix.js",
+      "types": "./dist/remix.d.ts"
+    },
+    "./http": {
+      "import": "./dist/http.js",
+      "types": "./dist/http.d.ts"
+    },
+    "./express": {
+      "import": "./dist/express.js",
+      "types": "./dist/express.d.ts"
+    }
   }
 }
