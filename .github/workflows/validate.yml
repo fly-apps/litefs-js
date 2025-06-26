@@ -10,6 +10,12 @@ on:
       - 'alpha'
   pull_request:
 
+permissions:
+  contents: write
+  issues: write
+  packages: write
+  pull-requests: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

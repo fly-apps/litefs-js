@@ -3,7 +3,13 @@ import path from 'path'
 import assert from 'node:assert'
 import { test } from 'node:test'
 import './utils'
-import { getInstanceInfo, getTxNumber, getInstanceInfoSync } from '../src'
+import {
+	getInstanceInfo,
+	getTxNumber,
+	getInstanceInfoSync,
+	getInternalInstanceDomain,
+	getAllInstances,
+} from '../src'
 import { tmpdir } from './utils'
 import fs from 'fs'
 
@@ -87,4 +93,44 @@ await test('getInstanceInfoSync() returns replica info if .primary file contains
 	assert.strictEqual(primaryInstance, fakePrimary)
 	assert.strictEqual(currentInstance, os.hostname())
 	assert.strictEqual(currentIsPrimary, false)
+})
+
+await test('getInternalInstanceDomain uses INTERNAL_PORT if set', () => {
+	process.env.INTERNAL_PORT = '1234'
+	process.env.PORT = '5678'
+	process.env.FLY_APP_NAME = 'myapp'
+	const domain = getInternalInstanceDomain('primary')
+	assert.strictEqual(domain, 'http://primary.vm.myapp.internal:1234')
+})
+
+await test('getInternalInstanceDomain uses PORT if INTERNAL_PORT is not set', () => {
+	delete process.env.INTERNAL_PORT
+	process.env.PORT = '5678'
+	process.env.FLY_APP_NAME = 'myapp'
+	const domain = getInternalInstanceDomain('primary')
+	assert.strictEqual(domain, 'http://primary.vm.myapp.internal:5678')
+})
+
+await test('getInternalInstanceDomain throws if neither INTERNAL_PORT nor PORT is set', () => {
+	delete process.env.INTERNAL_PORT
+	delete process.env.PORT
+	process.env.FLY_APP_NAME = 'myapp'
+	assert.throws(
+		() => getInternalInstanceDomain('primary'),
+		/must be set or a port must be supplied/,
+	)
+})
+
+await test('getInternalInstanceDomain uses explicit port argument if provided', () => {
+	process.env.INTERNAL_PORT = '1234'
+	process.env.PORT = '5678'
+	process.env.FLY_APP_NAME = 'myapp'
+	const domain = getInternalInstanceDomain('primary', '9999')
+	assert.strictEqual(domain, 'http://primary.vm.myapp.internal:9999')
+})
+
+await test('getAllInstances returns local mapping if FLY_APP_NAME is not set', async () => {
+	delete process.env.FLY_APP_NAME
+	const result = await getAllInstances()
+	assert.deepStrictEqual(result, { [os.hostname()]: 'local' })
 })

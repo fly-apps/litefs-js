@@ -7,6 +7,10 @@ import os from 'os'
 const {
 	LITEFS_DIR: original_LITEFS_DIR,
 	DATABASE_FILENAME: original_DATABASE_FILENAME,
+	INTERNAL_PORT: original_INTERNAL_PORT,
+	PORT: original_PORT,
+	FLY_APP_NAME: original_FLY_APP_NAME,
+	FLY_REGION: original_FLY_REGION,
 } = process.env
 
 const testId = Math.random().toString(36).substring(2, 15)
@@ -16,12 +20,20 @@ export const tmpdir = `${os.tmpdir()}/litefs-js-test-${testId}`
 beforeEach(async () => {
 	process.env.LITEFS_DIR = tmpdir
 	process.env.DATABASE_FILENAME = 'test.db'
+	process.env.INTERNAL_PORT = '1234'
+	process.env.PORT = '5678'
+	process.env.FLY_APP_NAME = 'test-app'
+	process.env.FLY_REGION = 'test-region'
 	await fs.promises.mkdir(tmpdir, { recursive: true })
 })
 
 afterEach(async () => {
 	process.env.LITEFS_DIR = original_LITEFS_DIR
 	process.env.DATABASE_FILENAME = original_DATABASE_FILENAME
+	process.env.INTERNAL_PORT = original_INTERNAL_PORT
+	process.env.PORT = original_PORT
+	process.env.FLY_APP_NAME = original_FLY_APP_NAME
+	process.env.FLY_REGION = original_FLY_REGION
 	await fs.promises.rm(tmpdir, { recursive: true })
 })
 
