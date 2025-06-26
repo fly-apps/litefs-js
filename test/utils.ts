@@ -1,4 +1,3 @@
-import { fetch } from '@remix-run/web-fetch'
 import express from 'express'
 import fs from 'fs'
 import type http from 'http'
@@ -10,7 +9,9 @@ const {
 	DATABASE_FILENAME: original_DATABASE_FILENAME,
 } = process.env
 
-export const tmpdir = `${os.tmpdir()}/litefs-js-test`
+const testId = Math.random().toString(36).substring(2, 15)
+
+export const tmpdir = `${os.tmpdir()}/litefs-js-test-${testId}`
 
 beforeEach(async () => {
 	process.env.LITEFS_DIR = tmpdir
@@ -24,7 +25,7 @@ afterEach(async () => {
 	await fs.promises.rm(tmpdir, { recursive: true })
 })
 
-const servers = new Set<http.Server>()
+export const servers = new Set<http.Server>()
 const serversClosing = new Map<http.Server, Promise<unknown>>()
 
 afterEach(() => {
@@ -102,4 +103,8 @@ export async function setupTxNumber(txnum: number = 0) {
 		`${process.env.LITEFS_DIR}/${process.env.DATABASE_FILENAME}-pos`,
 		`${txnum.toString(16)}/${(0.0).toString(16)}`,
 	)
+}
+
+export function hasOwn(obj: object, key: PropertyKey): boolean {
+	return Object.prototype.hasOwnProperty.call(obj, key)
 }

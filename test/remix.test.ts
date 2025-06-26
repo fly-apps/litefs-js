@@ -1,34 +1,35 @@
 import { test } from 'node:test'
 import assert from 'node:assert'
-import cookie from 'cookie'
+import * as cookie from 'cookie'
 import { setupPrimary, setupReplica, setupTxNumber } from './utils'
 import {
 	appendTxNumberCookie,
 	ensurePrimary,
 	handleTransactionalConsistency,
+	ensureInstance,
 } from '../src/remix'
 import { TXID_NUM_COOKIE_NAME } from '../src'
 
-test('ensurePrimary() does not throw a Response when on primary', async () => {
+await test('ensurePrimary() does not throw a Response when on primary', async () => {
 	await setupPrimary()
 	await ensurePrimary()
 })
 
-test('ensurePrimary() throws a Response when on replica', async () => {
+await test('ensurePrimary() throws a Response when on replica', async () => {
 	const primary = await setupReplica()
 	const response = await ensurePrimary().catch(r => r)
 	assert.equal(response.status, 302)
 	assert.equal(response.headers.get('fly-replay'), `instance=${primary}`)
 })
 
-test('handleTransactionalConsistency() returns ok if you do not have a txnum cookie', async () => {
+await test('handleTransactionalConsistency() returns ok if you do not have a txnum cookie', async () => {
 	await setupReplica()
 	const req = new Request('http://localhost:3000')
 	const result = await handleTransactionalConsistency(req)
 	assert.equal(result.type, 'ok')
 })
 
-test('handleTransactionalConsistency() returns delete-cookie if you have an invalid cookie for txnum', async () => {
+await test('handleTransactionalConsistency() returns delete-cookie if you have an invalid cookie for txnum', async () => {
 	await setupReplica()
 	const req = new Request('http://localhost:3000', {
 		headers: {
@@ -43,7 +44,7 @@ test('handleTransactionalConsistency() returns delete-cookie if you have an inva
 	}
 })
 
-test('handleTransactionalConsistency() returns replay if the txnum is old', async () => {
+await test('handleTransactionalConsistency() returns replay if the txnum is old', async () => {
 	const primary = await setupReplica()
 	const currentTxNumber = 2
 	const clientTxNumber = currentTxNumber + 1
@@ -58,7 +59,7 @@ test('handleTransactionalConsistency() returns replay if the txnum is old', asyn
 	assert.equal(response.headers.get('fly-replay'), `instance=${primary}`)
 })
 
-test('appendTxNumberCookie() does nothing for GET requests', async () => {
+await test('appendTxNumberCookie() does nothing for GET requests', async () => {
 	await setupPrimary()
 	const request = new Request('http://localhost:3000')
 	const headers = new Headers()
@@ -66,7 +67,7 @@ test('appendTxNumberCookie() does nothing for GET requests', async () => {
 	assert.equal(headers.get('Set-Cookie'), null)
 })
 
-test('appendTxNumberCookie() does nothing in replica instances', async () => {
+await test('appendTxNumberCookie() does nothing in replica instances', async () => {
 	await setupReplica()
 	const request = new Request('http://localhost:3000', { method: 'POST' })
 	const headers = new Headers()
@@ -74,7 +75,7 @@ test('appendTxNumberCookie() does nothing in replica instances', async () => {
 	assert.equal(headers.get('Set-Cookie'), null)
 })
 
-test('appendTxNumberCookie() adds a txnum cookie on primary POST requests', async () => {
+await test('appendTxNumberCookie() adds a txnum cookie on primary POST requests', async () => {
 	await setupPrimary()
 	const txnum = 10
 	await setupTxNumber(txnum)
@@ -85,4 +86,21 @@ test('appendTxNumberCookie() adds a txnum cookie on primary POST requests', asyn
 	assert.ok(cookieHeader)
 	const cook = cookie.parse(cookieHeader)
 	assert.equal(cook[TXID_NUM_COOKIE_NAME], txnum.toString())
+})
+
+await test('ensureInstance() resolves when instance matches currentInstance', async () => {
+	await setupPrimary()
+	// get the current instance name
+	const { currentInstance } = await import('../src').then(m =>
+		m.getInstanceInfo(),
+	)
+	await ensureInstance(currentInstance)
+})
+
+await test('ensureInstance() throws a Response when instance does not match currentInstance', async () => {
+	await setupPrimary()
+	const fakeInstance = 'not-the-current-instance'
+	const response = await ensureInstance(fakeInstance).catch(r => r)
+	assert.equal(response.status, 302)
+	assert.equal(response.headers.get('fly-replay'), `instance=${fakeInstance}`)
 })

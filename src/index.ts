@@ -2,8 +2,8 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import dns from 'dns'
-import cookie from 'cookie'
-import type { CookieSerializeOptions } from 'cookie'
+import * as cookie from 'cookie'
+import type { SerializeOptions as CookieSerializeOptions } from 'cookie'
 
 type InstanceInfo = {
 	/** the hostname of the primary instance (found in the `LITEFS_DIR/.primary` file if present, falls back to `os.hostname()`) */

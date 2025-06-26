@@ -1,6 +1,6 @@
-import cookie from 'cookie'
+import * as cookie from 'cookie'
 import assert from 'node:assert'
-import { it, describe, before } from 'node:test'
+import { it, describe, beforeEach } from 'node:test'
 import {
 	getEnsurePrimaryMiddleware,
 	getSetTxNumberMiddleware,
@@ -13,9 +13,10 @@ import {
 	setupReplica,
 	setupTxNumber,
 	sleep,
+	hasOwn,
 } from './utils'
 
-describe(() => {
+describe(async () => {
 	let app: Awaited<ReturnType<typeof createServer>>['app'],
 		fetch: Awaited<ReturnType<typeof createServer>>['fetch']
 
@@ -25,7 +26,7 @@ describe(() => {
 
 	const ensurePrimaryRoute = '/ensure-primary'
 
-	before(async () => {
+	beforeEach(async () => {
 		const server = await createServer()
 		app = server.app
 		fetch = server.fetch
@@ -38,24 +39,30 @@ describe(() => {
 			}
 			next()
 		})
-		app.use(ensurePrimaryRoute, getEnsurePrimaryMiddleware(), (req, res) =>
-			res.send('ok'),
-		)
+		app.use(ensurePrimaryRoute, getEnsurePrimaryMiddleware(), (_req, res) => {
+			res.send('ok')
+		})
 		app.use(getTransactionalConsistencyMiddleware())
 		app.use(getSetTxNumberMiddleware())
-		app.get('/', (req, res) => res.send('ok'))
-		app.post('/', (req, res) => res.send('ok'))
-		app.post(otherCookieRoute, (req, res) => res.send('ok'))
+		app.get('/', (_req, res) => {
+			res.send('ok')
+		})
+		app.post('/', (_req, res) => {
+			res.send('ok')
+		})
+		app.post(otherCookieRoute, (_req, res) => {
+			res.send('ok')
+		})
 	})
 
-	it('getTransactionalConsistencyMiddleware() proceeds when on primary', async () => {
+	await it('getTransactionalConsistencyMiddleware() proceeds when on primary', async () => {
 		await setupPrimary()
 		const response = await fetch(`/`)
 		assert.equal(response.status, 200)
 		assert.equal(response.headers.get('fly-replay'), null)
 	})
 
-	it('getTransactionalConsistencyMiddleware() deletes an invalid txnum cookie', async () => {
+	await it('getTransactionalConsistencyMiddleware() deletes an invalid txnum cookie', async () => {
 		await setupPrimary()
 		const response = await fetch(`/`, {
 			headers: { cookie: cookie.serialize(TXID_NUM_COOKIE_NAME, 'invalid') },
@@ -67,7 +74,7 @@ describe(() => {
 		assert.equal(cookies.Expires, new Date(0).toUTCString())
 	})
 
-	it('getTransactionalConsistencyMiddleware() deletes coookie if the user is ahead of the primary', async () => {
+	await it('getTransactionalConsistencyMiddleware() deletes coookie if the user is ahead of the primary', async () => {
 		await setupPrimary()
 		const txNum = 1
 		const usersTxNum = txNum + 1
@@ -84,7 +91,7 @@ describe(() => {
 		assert.equal(cookies.Expires, new Date(0).toUTCString())
 	})
 
-	it('getTransactionalConsistencyMiddleware() replica lets the user through if it has as up-to-date a tx number as the user', async () => {
+	await it('getTransactionalConsistencyMiddleware() replica lets the user through if it has as up-to-date a tx number as the user', async () => {
 		await setupReplica()
 		const txNum = 2
 		const usersTxNum = txNum
@@ -101,7 +108,7 @@ describe(() => {
 		assert.equal(cookies.Expires, new Date(0).toUTCString())
 	})
 
-	it('getTransactionalConsistencyMiddleware() waits for tx number to be updated on replica', async () => {
+	await it('getTransactionalConsistencyMiddleware() waits for tx number to be updated on replica', async () => {
 		await setupReplica()
 		let txNum = 2
 		const usersTxNum = txNum + 1
@@ -122,7 +129,7 @@ describe(() => {
 		assert.equal(cookies.Expires, new Date(0).toUTCString())
 	})
 
-	it('getTransactionalConsistencyMiddleware() replays on replica if it takes too long for up-to-date txnum', async () => {
+	await it('getTransactionalConsistencyMiddleware() replays on replica if it takes too long for up-to-date txnum', async () => {
 		const primary = await setupReplica()
 		const txNum = 2
 		const usersTxNum = txNum + 1
@@ -136,21 +143,21 @@ describe(() => {
 		assert.equal(response.headers.get('fly-replay'), `instance=${primary}`)
 	})
 
-	it('getSetTxNumberMiddleware() does nothing on replica instances', async () => {
+	await it('getSetTxNumberMiddleware() does nothing on replica instances', async () => {
 		await setupReplica()
 		const response = await fetch(`/`, { method: 'POST' })
 		assert.equal(response.status, 200)
 		assert.equal(response.headers.get('Set-Cookie'), null)
 	})
 
-	it('getSetTxNumberMiddleware() does nothing on get requests', async () => {
+	await it('getSetTxNumberMiddleware() does nothing on get requests', async () => {
 		await setupPrimary()
 		const response = await fetch(`/`)
 		assert.equal(response.status, 200)
 		assert.equal(response.headers.get('Set-Cookie'), null)
 	})
 
-	it('getSetTxNumberMiddleware() sets the tx number in the cookie', async () => {
+	await it('getSetTxNumberMiddleware() sets the tx number in the cookie', async () => {
 		await setupPrimary()
 		await setupTxNumber(1)
 		const response = await fetch(`/`, { method: 'POST' })
@@ -160,7 +167,7 @@ describe(() => {
 		assert.equal(cookies[TXID_NUM_COOKIE_NAME], '1')
 	})
 
-	it('getSetTxNumberMiddleware() does not override other cookies', async () => {
+	await it('getSetTxNumberMiddleware() does not override other cookies', async () => {
 		await setupPrimary()
 		const txNum = 1
 		await setupTxNumber(txNum)
@@ -169,15 +176,15 @@ describe(() => {
 		const setCookieHeader = response.headers.get('Set-Cookie')
 		assert.ok(setCookieHeader)
 		const allCookies = setCookieHeader.split(', ').map(v => cookie.parse(v))
-		const txnum = allCookies.find(v => v.hasOwnProperty(TXID_NUM_COOKIE_NAME))
-		const other = allCookies.find(v => v.hasOwnProperty(otherCookieKey))
+		const txnum = allCookies.find(v => hasOwn(v, TXID_NUM_COOKIE_NAME))
+		const other = allCookies.find(v => hasOwn(v, otherCookieKey))
 		assert.ok(txnum)
 		assert.ok(other)
 		assert.equal(txnum[TXID_NUM_COOKIE_NAME], txNum.toString())
 		assert.equal(other[otherCookieKey], otherCookieValue)
 	})
 
-	it('getSetTxNumberMiddleware() does not override multiple other cookies', async () => {
+	await it('getSetTxNumberMiddleware() does not override multiple other cookies', async () => {
 		await setupPrimary()
 		const txNum = 1
 		await setupTxNumber(txNum)
@@ -193,11 +200,9 @@ describe(() => {
 		const setCookieHeader = response.headers.get('Set-Cookie')
 		assert.ok(setCookieHeader)
 		const allCookies = setCookieHeader.split(', ').map(v => cookie.parse(v))
-		const txnum = allCookies.find(v => v.hasOwnProperty(TXID_NUM_COOKIE_NAME))
-		const other = allCookies.find(v => v.hasOwnProperty(otherCookieKey))
-		const anotherOther = allCookies.find(v =>
-			v.hasOwnProperty(anotherOtherCookieName),
-		)
+		const txnum = allCookies.find(v => hasOwn(v, TXID_NUM_COOKIE_NAME))
+		const other = allCookies.find(v => hasOwn(v, otherCookieKey))
+		const anotherOther = allCookies.find(v => hasOwn(v, anotherOtherCookieName))
 		assert.ok(txnum)
 		assert.ok(other)
 		assert.ok(anotherOther)
@@ -206,13 +211,13 @@ describe(() => {
 		assert.equal(anotherOther[anotherOtherCookieName], anotherOtherCookieValue)
 	})
 
-	it('ensurePrimary() does nothing on the primary', async () => {
+	await it('ensurePrimary() does nothing on the primary', async () => {
 		await setupPrimary()
 		const response = await fetch(ensurePrimaryRoute, { method: 'POST' })
 		assert.equal(response.status, 200)
 	})
 
-	it('ensurePrimary() returns 409 on replica', async () => {
+	await it('ensurePrimary() returns 409 on replica', async () => {
 		const primary = await setupReplica()
 		const response = await fetch(ensurePrimaryRoute, { method: 'POST' })
 		assert.equal(response.status, 409)
